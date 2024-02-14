@@ -33,29 +33,34 @@ export async function POST(request: Request) {
   const arrayBuffer = await file.arrayBuffer();
   const unit8Array = new Uint8Array(arrayBuffer);
 
-  const result = await uploadStream(unit8Array, {
-    folder: "pdf",
-    ocr: "adv_ocr",
-  });
+  try {
+    const result = await uploadStream(unit8Array, {
+      folder: "pdf",
+      ocr: "adv_ocr",
+    });
 
-  const { asset_id: id, secure_url: url, pages, info } = result;
+    const { asset_id: id, secure_url: url, pages, info } = result;
 
-  const data = info?.ocr?.adv_ocr?.data;
-  const text = data
-    .map((blocks: { textAnnotations: { description: string }[] }) => {
-      const annotations = blocks["textAnnotations"] ?? [];
-      const first = annotations[0] ?? {};
-      const content = first["description"] ?? "";
-      return content.trim();
-    })
-    .filter(Boolean)
-    .join("\n");
+    const data = info?.ocr?.adv_ocr?.data;
+    const text = data
+      .map((blocks: { textAnnotations: { description: string }[] }) => {
+        const annotations = blocks["textAnnotations"] ?? [];
+        const first = annotations[0] ?? {};
+        const content = first["description"] ?? "";
+        return content.trim();
+      })
+      .filter(Boolean)
+      .join("\n");
 
-  // TODO:
-  // Meter esta informacion en una base de datos;
-  // O mejor todavia en un vector y hacer los embeddings;
+    // TODO:
+    // Meter esta informacion en una base de datos;
+    // O mejor todavia en un vector y hacer los embeddings;
 
-  writeFileSync(`${outputDir}/${id}.txt`, text, "utf-8");
+    writeFileSync(`${outputDir}/${id}.txt`, text, "utf-8");
 
-  return Response.json({ id, url, pages });
+    return Response.json({ id, url, pages });
+  } catch (error) {
+    console.log(error);
+    return Response.json(error, { status: 400 });
+  }
 }
